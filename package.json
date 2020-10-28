@@ -24,8 +24,7 @@
     "clean": "rm -rf dist",
     "build": "npm clean && tsc",
     "test": "jest --config jestconfig.json src/tests",
-    "prepublishOnly": "npm build",
-    "postinstall": "npm install && npm run build"
+    "prepublishOnly": "npm build"
   },
   "dependencies": {},
   "devDependencies": {
