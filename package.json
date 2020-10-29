@@ -22,9 +22,9 @@
   ],
   "scripts": {
     "clean": "rm -rf dist",
-    "build": "npm clean && tsc",
+    "build": "yarn clean && tsc",
     "test": "jest --config jestconfig.json src/tests",
-    "prepare": "npm run build"
+    "prepublishOnly": "yarn test && yarn build"
   },
   "dependencies": {},
   "devDependencies": {
