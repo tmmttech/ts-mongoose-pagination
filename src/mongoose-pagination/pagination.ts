@@ -12,7 +12,8 @@ const defaultOptions: IPaginateDefaultOptions = {
   lean: false,
   perPage: 10,
   projection: "",
-  select: ""
+  select: "",
+  ignoreTotalPages: true
 };
 
 function genMongooseQuery(

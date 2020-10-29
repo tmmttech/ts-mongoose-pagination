@@ -16,6 +16,7 @@ declare module "mongoose" {
         projection: string;
         lean: boolean;
         perPage: number;
+        ignoreTotalPages: boolean;
     }
     interface IPaginateResult<T> {
         data: T[];

@@ -78,7 +78,7 @@ afterAll(async done => {
 
 test("paginate with page undefined", async done => {
   // no pagination, return all docs
-  const accounts = await Account.paginate({});
+  const accounts = await Account.paginate({}, { ignoreTotalPages: false });
   expect(accounts.data.length).toBe(11);
   expect(accounts.pagination).toEqual({
     hasPrevPage: false,
@@ -92,28 +92,40 @@ test("paginate with page undefined", async done => {
 
 test("paginate with page specified and default perPage", async done => {
   // 10 perpage
-  const accounts = await Account.paginate({}, { page: 1 });
+  const accounts = await Account.paginate(
+    {},
+    { page: 1, ignoreTotalPages: false }
+  );
   expect(accounts.data.length).toBe(10);
   done();
 });
 
 test("paginate with page specified and customized perPage", async done => {
   // 5 perPage
-  const accounts = await Account.paginate({}, { page: 1, perPage: 5 });
+  const accounts = await Account.paginate(
+    {},
+    { page: 1, perPage: 5, ignoreTotalPages: false }
+  );
   expect(accounts.data.length).toBe(5);
   done();
 });
 
 test("paginate with page more than actual pages", async done => {
   // 11 docs, 5 perpage, 1 doc in last page
-  const accounts = await Account.paginate({}, { page: 100, perPage: 5 });
+  const accounts = await Account.paginate(
+    {},
+    { page: 100, perPage: 5, ignoreTotalPages: false }
+  );
   expect(accounts.data.length).toBe(1);
   done();
 });
 
 test("paginate with previous page and next page", async done => {
   // 10 perpage
-  const accounts = await Account.paginate({}, { page: 2, perPage: 5 });
+  const accounts = await Account.paginate(
+    {},
+    { page: 2, perPage: 5, ignoreTotalPages: false }
+  );
   expect(accounts.data.length).toBe(5);
   expect(accounts.pagination).toEqual({
     hasPrevPage: true,
@@ -130,7 +142,7 @@ test("paginate with previous page and next page", async done => {
 test("paginate with populate", async done => {
   const accounts = await Account.paginate(
     {},
-    { page: 1, perPage: 5, populate: "user" }
+    { page: 1, perPage: 5, populate: "user", ignoreTotalPages: false }
   );
   expect(accounts.data.length).toBe(5);
   expect((accounts.data[0].user as TUser).username).toBe(dummyUserName);
@@ -144,7 +156,8 @@ test("paginate with collation", async done => {
       page: 1,
       perPage: 5,
       populate: "user",
-      collation: { locale: "en_US", strength: 1 }
+      collation: { locale: "en_US", strength: 1 },
+      ignoreTotalPages: false
     }
   );
   expect(accounts.data.length).toBe(5);

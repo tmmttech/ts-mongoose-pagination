@@ -4,7 +4,8 @@ const defaultOptions = {
     lean: false,
     perPage: 10,
     projection: "",
-    select: ""
+    select: "",
+    ignoreTotalPages: true
 };
 function genMongooseQuery(model, conditions, options, countDocs) {
     const { collation, lean, perPage, populate, projection, select, sort, ignoreTotalPages } = options;
