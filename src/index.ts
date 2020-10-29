@@ -8,6 +8,7 @@ declare module "mongoose" {
     lean?: boolean;
     page?: number;
     perPage?: number;
+    ignoreTotalPages?: boolean;
   }
   export interface IPaginateDefaultOptions {
     select: string;
