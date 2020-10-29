@@ -7,7 +7,8 @@ const defaultOptions = {
     select: ""
 };
 function genMongooseQuery(model, conditions, options, countDocs) {
-    let { collation, lean, perPage, populate, projection, select, sort, page } = options;
+    const { collation, lean, perPage, populate, projection, select, sort, ignoreTotalPages } = options;
+    let { page } = options;
     const query = model
         .find(conditions, projection)
         .select(select)
@@ -24,16 +25,19 @@ function genMongooseQuery(model, conditions, options, countDocs) {
     const totalPages = Math.ceil(countDocs / perPage) || 1;
     // page === 'undefined' <=> no pagination
     if (typeof page !== "undefined") {
-        if (page > totalPages) {
-            page = totalPages;
+        if (!ignoreTotalPages) {
+            if (page > totalPages) {
+                page = totalPages;
+            }
         }
-        let skip = (page - 1) * perPage;
+        const skip = (page - 1) * perPage;
         query.skip(skip).limit(perPage);
     }
     return query;
 }
 function genPagination(options, count) {
-    let { perPage, page } = options;
+    const { perPage, ignoreTotalPages } = options;
+    let { page } = options;
     const pagination = {
         hasPrevPage: false,
         hasNextPage: false,
@@ -42,19 +46,27 @@ function genPagination(options, count) {
         perPage: perPage
     };
     if (typeof page !== "undefined") {
-        const totalPages = Math.ceil(count / perPage) || 1;
-        pagination.totalPages = totalPages;
         pagination.page = page;
-        if (page > totalPages) {
-            page = totalPages;
-        }
         if (page > 1) {
             pagination.hasPrevPage = true;
             pagination.prevPage = page - 1;
         }
-        if (page < totalPages) {
-            pagination.hasNextPage = true;
-            pagination.nextPage = page + 1;
+        if (ignoreTotalPages) {
+            if (count === perPage) {
+                pagination.hasNextPage = true;
+                pagination.nextPage = page + 1;
+            }
+        }
+        else {
+            const totalPages = Math.ceil(count / perPage) || 1;
+            pagination.totalPages = totalPages;
+            if (page > totalPages) {
+                page = totalPages;
+            }
+            if (page < totalPages) {
+                pagination.hasNextPage = true;
+                pagination.nextPage = page + 1;
+            }
         }
     }
     return pagination;
@@ -67,9 +79,15 @@ async function paginate(conditions, options, callback) {
             ...options
         };
         conditions = conditions || {};
-        const count = await this.countDocuments(conditions).exec();
+        let count = 0;
+        if (!options.ignoreTotalPages) {
+            count = await this.countDocuments(conditions).exec();
+        }
         const mongooseQuery = genMongooseQuery(this, conditions, options, count);
         const docs = await mongooseQuery.exec();
+        if (docs && options.ignoreTotalPages) {
+            count = docs.length;
+        }
         const result = {
             data: docs,
             pagination: genPagination(options, count)

@@ -21,7 +21,7 @@ function genMongooseQuery(
   options: IPaginateOptions & IPaginateDefaultOptions,
   countDocs: number
 ): DocumentQuery<any, any> {
-  let {
+  const {
     collation,
     lean,
     perPage,
@@ -29,8 +29,9 @@ function genMongooseQuery(
     projection,
     select,
     sort,
-    page
+    ignoreTotalPages
   } = options;
+  let { page } = options;
 
   const query = model
     .find(conditions, projection)
@@ -51,10 +52,12 @@ function genMongooseQuery(
 
   // page === 'undefined' <=> no pagination
   if (typeof page !== "undefined") {
-    if (page > totalPages) {
-      page = totalPages;
+    if (!ignoreTotalPages) {
+      if (page > totalPages) {
+        page = totalPages;
+      }
     }
-    let skip = (page - 1) * (perPage as number);
+    const skip = (page - 1) * (perPage as number);
     query.skip(skip).limit(perPage);
   }
   return query;
@@ -64,7 +67,8 @@ function genPagination(
   options: IPaginateOptions & IPaginateDefaultOptions,
   count: number
 ) {
-  let { perPage, page } = options;
+  const { perPage, ignoreTotalPages } = options;
+  let { page } = options;
   const pagination: IPagination = {
     hasPrevPage: false,
     hasNextPage: false,
@@ -73,19 +77,26 @@ function genPagination(
     perPage: perPage
   };
   if (typeof page !== "undefined") {
-    const totalPages = Math.ceil(count / perPage) || 1;
-    pagination.totalPages = totalPages;
     pagination.page = page;
-    if (page > totalPages) {
-      page = totalPages;
-    }
     if (page > 1) {
       pagination.hasPrevPage = true;
       pagination.prevPage = page - 1;
     }
-    if (page < totalPages) {
-      pagination.hasNextPage = true;
-      pagination.nextPage = page + 1;
+    if (ignoreTotalPages) {
+      if (count === perPage) {
+        pagination.hasNextPage = true;
+        pagination.nextPage = page + 1;
+      }
+    } else {
+      const totalPages = Math.ceil(count / perPage) || 1;
+      pagination.totalPages = totalPages;
+      if (page > totalPages) {
+        page = totalPages;
+      }
+      if (page < totalPages) {
+        pagination.hasNextPage = true;
+        pagination.nextPage = page + 1;
+      }
     }
   }
   return pagination;
@@ -106,9 +117,16 @@ async function paginate(
     };
 
     conditions = conditions || {};
-    const count = await this.countDocuments(conditions).exec();
+    let count: number = 0;
+    if (!options.ignoreTotalPages) {
+      count = await this.countDocuments(conditions).exec();
+    }
+
     const mongooseQuery = genMongooseQuery(this, conditions, options, count);
     const docs = await mongooseQuery.exec();
+    if (docs && options.ignoreTotalPages) {
+      count = docs.length as number;
+    }
     const result: IPaginateResult<any> = {
       data: docs,
       pagination: genPagination(options, count)
